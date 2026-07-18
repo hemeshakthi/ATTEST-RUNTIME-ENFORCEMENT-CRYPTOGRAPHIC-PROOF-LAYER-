@@ -2,8 +2,8 @@
   "name": "nitrostack-app",
   "version": "1.0.0",
   "scripts": {
-    "build": "prisma generate",
-    "start": "prisma generate && tsx src/index.ts",
+    "build": "npx prisma generate",
+    "start": "npx prisma generate && tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
     "dev:api": "tsx watch src/dashboard-api/server.ts",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:api\" \"cd frontend && npm run dev\"",
