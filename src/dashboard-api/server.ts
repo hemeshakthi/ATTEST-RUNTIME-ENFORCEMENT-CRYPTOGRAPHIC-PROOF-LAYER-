@@ -62,8 +62,10 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 const PORT = process.env.API_PORT || 3001;
 
 import { runtimeProxy } from '../enforcement';
+import { ensureDatabaseReady } from '../config/migrate';
 
 app.listen(PORT, async () => {
+  await ensureDatabaseReady();
   await runtimeProxy.initializeFromDb();
   console.log(`🚀 Dashboard API server running on http://localhost:${PORT}`);
 });
