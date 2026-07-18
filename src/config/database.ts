@@ -7,7 +7,7 @@ import { join } from 'path';
  * which doesn't exist on modern Alpine (OpenSSL 3.x).
  * We find the correct engine binary and tell Prisma to use it.
  */
-if (!process.env.PRISMA_QUERY_ENGINE_LIBRARY) {
+if (process.platform === 'linux' && !process.env.PRISMA_QUERY_ENGINE_LIBRARY) {
   try {
     const prismaDir = join(process.cwd(), 'node_modules', '.prisma', 'client');
     const engine = readdirSync(prismaDir)
@@ -17,7 +17,7 @@ if (!process.env.PRISMA_QUERY_ENGINE_LIBRARY) {
       process.env.PRISMA_QUERY_ENGINE_LIBRARY = join(prismaDir, engine);
     }
   } catch {
-    // Not on Linux/Alpine — native engine will work fine
+    // Engine detection failed — Prisma will use its default
   }
 }
 

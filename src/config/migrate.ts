@@ -41,11 +41,17 @@ export async function ensureDatabaseReady(): Promise<void> {
     console.log(`[Migrate] Applying ${dir}…`);
     const sql = readFileSync(sqlPath, 'utf-8');
 
+    // Remove comment lines first
+    const cleanSql = sql
+      .split('\n')
+      .filter(line => !line.trim().startsWith('--'))
+      .join('\n');
+
     // Split on semicolons, trim, and run each non-empty statement
-    const statements = sql
+    const statements = cleanSql
       .split(';')
       .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--'));
+      .filter(s => s.length > 0);
 
     for (const stmt of statements) {
       await prisma.$executeRawUnsafe(stmt);
