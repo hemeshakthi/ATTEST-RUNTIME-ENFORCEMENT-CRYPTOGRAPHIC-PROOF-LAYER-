@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.*
+prisma/dev.db
+*.db
+*.db-journal
+keys/
+backend/keys/
+
+/src/generated/prisma
+.nitrostudio/
+frontend/dist/
+rc1-audit.mjs

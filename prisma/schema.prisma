@@ -1,0 +1,108 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Agent {
+  id              String            @id @default(cuid())
+  name            String
+  orgId           String
+  status          String
+  createdAt       DateTime          @default(now())
+  
+  contracts       Contract[]
+  receipts        ExecutionReceipt[]
+  violations      Violation[]
+  
+  delegationsFrom DelegationEdge[]  @relation("DelegationFrom")
+  delegationsTo   DelegationEdge[]  @relation("DelegationTo")
+}
+
+model Contract {
+  id                    String            @id @default(cuid())
+  name                  String
+  version               Int
+  yamlSource            String
+  compiledStateMachine  String
+  status                String
+  agentId               String
+  agent                 Agent             @relation(fields: [agentId], references: [id])
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  
+  versions              ContractVersion[]
+  receipts              ExecutionReceipt[]
+  violations            Violation[]
+  simulationRuns        SimulationRun[]
+}
+
+model ContractVersion {
+  id                 String     @id @default(cuid())
+  contractId         String
+  contract           Contract   @relation(fields: [contractId], references: [id])
+  version            Int
+  yamlSource         String
+  diffFromPrevious   String?
+  approvedBy         String?
+  createdAt          DateTime   @default(now())
+}
+
+model ExecutionReceipt {
+  id                 String     @id @default(cuid())
+  contractId         String
+  contract           Contract   @relation(fields: [contractId], references: [id])
+  agentId            String
+  agent              Agent      @relation(fields: [agentId], references: [id])
+  toolName           String
+  params             String
+  decision           String
+  reasonRuleId       String?
+  reasonText         String?
+  preStateHash       String?
+  postStateHash      String?
+  prevReceiptHash    String?
+  signature          String?
+  timestamp          DateTime   @default(now())
+  
+  violations         Violation[]
+}
+
+model Violation {
+  id                 String             @id @default(cuid())
+  receiptId          String
+  receipt            ExecutionReceipt   @relation(fields: [receiptId], references: [id])
+  agentId            String
+  agent              Agent              @relation(fields: [agentId], references: [id])
+  contractId         String
+  contract           Contract           @relation(fields: [contractId], references: [id])
+  description        String
+  status             String
+  createdAt          DateTime           @default(now())
+}
+
+model SimulationRun {
+  id                 String     @id @default(cuid())
+  contractId         String
+  contract           Contract   @relation(fields: [contractId], references: [id])
+  scenarioCount      Int
+  passCount          Int
+  failCount          Int
+  coveragePercent    Float
+  deadRules          String
+  conflictingRules   String
+  createdAt          DateTime   @default(now())
+}
+
+model DelegationEdge {
+  id                 String     @id @default(cuid())
+  fromAgentId        String
+  fromAgent          Agent      @relation("DelegationFrom", fields: [fromAgentId], references: [id])
+  toAgentId          String
+  toAgent            Agent      @relation("DelegationTo", fields: [toAgentId], references: [id])
+  scopedCapability   String
+  createdAt          DateTime   @default(now())
+}
