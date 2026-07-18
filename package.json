@@ -5,9 +5,8 @@
     "dev": "tsx watch src/index.ts",
     "dev:api": "tsx watch src/dashboard-api/server.ts",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:api\" \"cd frontend && npm run dev\"",
-    "start": "tsx src/index.ts",
-    "test": "vitest run",
-    "postinstall": "prisma generate"
+    "start": "prisma generate && tsx src/index.ts",
+    "test": "vitest run"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
