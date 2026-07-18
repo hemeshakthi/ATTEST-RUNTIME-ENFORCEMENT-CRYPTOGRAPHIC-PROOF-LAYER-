@@ -7,6 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "dev:api": "tsx watch src/dashboard-api/server.ts",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:api\" \"cd frontend && npm run dev\"",
+    "start": "prisma generate && tsx src/index.ts",
     "test": "vitest run"
   },
   "prisma": {
@@ -17,8 +18,11 @@
     "@prisma/client": "^5.22.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
+    "prisma": "^5.22.0",
+    "tsx": "^4.23.1",
     "tweetnacl": "^1.0.3",
     "tweetnacl-util": "^0.15.1",
+    "typescript": "^5.9.3",
     "yaml": "^2.9.0"
   },
   "devDependencies": {
@@ -26,9 +30,6 @@
     "@types/express": "^5.0.6",
     "@types/node": "^26.1.1",
     "concurrently": "^9.2.4",
-    "prisma": "^5.22.0",
-    "tsx": "^4.23.1",
-    "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   }
 }
