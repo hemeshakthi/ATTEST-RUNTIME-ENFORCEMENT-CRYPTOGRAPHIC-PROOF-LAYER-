@@ -27,6 +27,7 @@ import {
   EvaluationResult,
 } from '../compiler';
 import { prisma } from '../config/database';
+import { generateReceipt } from '../attestation/receipt-generator';
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -169,6 +170,37 @@ class RuntimeProxy {
     console.log(`[Runtime Proxy] Initialized ${loaded} deployed capability contracts from database.`);
   }
 
+  private async saveOutcomeToDb(outcome: EnforcementOutcome): Promise<void> {
+    try {
+      const contract = await prisma.contract.findFirst({
+        where: { agentId: outcome.agentId },
+        orderBy: { version: 'desc' },
+      });
+
+      if (!contract) {
+        console.warn(`[Runtime Proxy] No contract found for agent "${outcome.agentId}" — skipping DB receipt generation.`);
+        return;
+      }
+
+      const persisted = await generateReceipt(outcome, contract.id);
+
+      if (outcome.decision === 'BLOCKED') {
+        await prisma.violation.create({
+          data: {
+            receiptId: persisted.id,
+            agentId: outcome.agentId,
+            contractId: contract.id,
+            description: `Policy breach: ${outcome.reason} (Rule: ${outcome.ruleId || 'N/A'})`,
+            status: 'open',
+          },
+        });
+        console.log(`[Runtime Proxy] 🛑 Violation logged in database for agent "${outcome.agentId}"`);
+      }
+    } catch (err) {
+      console.error('[Runtime Proxy] Failed to save outcome to database:', err);
+    }
+  }
+
   // ── Core Enforcement ──────────────────────────────────────────
 
   /**
@@ -203,6 +235,7 @@ class RuntimeProxy {
         timestamp: now.toISOString(),
       };
       this._auditLog.push(denial);
+      this.saveOutcomeToDb(denial);
       return denial;
     }
 
@@ -221,6 +254,7 @@ class RuntimeProxy {
           timestamp: now.toISOString(),
         };
         this._auditLog.push(denial);
+        this.saveOutcomeToDb(denial);
         return denial;
       }
 
@@ -239,6 +273,7 @@ class RuntimeProxy {
         timestamp: now.toISOString(),
       };
       this._auditLog.push(allowance);
+      this.saveOutcomeToDb(allowance);
       return allowance;
     }
 
@@ -265,6 +300,7 @@ class RuntimeProxy {
         timestamp: now.toISOString(),
       };
       this._auditLog.push(denial);
+      this.saveOutcomeToDb(denial);
       return denial;
     }
 
@@ -287,6 +323,7 @@ class RuntimeProxy {
       timestamp: now.toISOString(),
     };
     this._auditLog.push(allowance);
+    this.saveOutcomeToDb(allowance);
     return allowance;
   }
 
