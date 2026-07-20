@@ -201,13 +201,54 @@ class RuntimeProxy {
     }
   }
 
+  /**
+   * Helper to resolve various forms of agent IDs (human-readable names, CUIDs, 
+   * or client-defined aliases like "default-agent") to the correct database-seeded Agent ID.
+   */
+  async resolveAgentId(inputAgentId: string): Promise<string> {
+    if (this.agents.has(inputAgentId)) {
+      return inputAgentId;
+    }
+
+    try {
+      const normalizedInput = inputAgentId.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const targetInput = (normalizedInput === 'defaultagent' || normalizedInput === 'unknownagent') 
+        ? 'financeagent' 
+        : normalizedInput;
+
+      const allAgents = await prisma.agent.findMany();
+
+      // 1. Try matching CUID exactly
+      const exactMatch = allAgents.find(a => a.id === inputAgentId);
+      if (exactMatch) return exactMatch.id;
+
+      // 2. Try matching normalized names (e.g. "Finance Agent" matches "finance-agent")
+      const nameMatch = allAgents.find(a => {
+        const normName = a.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return normName === targetInput || normName.includes(targetInput) || targetInput.includes(normName);
+      });
+      if (nameMatch) return nameMatch.id;
+
+      // 3. Fallback to first loaded agent or "finance" agent
+      if (allAgents.length > 0) {
+        const fin = allAgents.find(a => a.name.toLowerCase().includes('finance'));
+        if (fin) return fin.id;
+        return allAgents[0].id;
+      }
+    } catch (err) {
+      console.error('[Runtime Proxy] Error resolving agent ID:', err);
+    }
+
+    return inputAgentId;
+  }
+
   // ── Core Enforcement ──────────────────────────────────────────
 
   /**
    * Enforce a tool call.  This is the single choke-point that every
    * tool handler must pass through.
    *
-   * @param agentId   Which agent is making the call
+   * @param inputAgentId Which agent is making the call
    * @param toolName  The @Tool name being invoked
    * @param params    The tool's input params
    * @param stateSnapshot  JSON-serialisable snapshot of the mock-DB
@@ -215,13 +256,14 @@ class RuntimeProxy {
    * @param realHandler    The actual tool handler function
    */
   async enforce<T>(
-    agentId: string,
+    inputAgentId: string,
     toolName: string,
     params: Record<string, unknown>,
     stateSnapshot: () => unknown,
     realHandler: () => Promise<T>,
   ): Promise<EnforcementOutcome> {
     const now = new Date();
+    const agentId = await this.resolveAgentId(inputAgentId);
 
     // ── 1. Emergency Stop ─────────────────────────────────────
     if (this._emergencyStop) {
